@@ -187,6 +187,9 @@ pub fn translate_locale(name: String, locale: &str) -> String {
         locale,
         cjk_ui_unavailable(),
     );
+    if let Some(v) = crate::digitech::translate(&lang, &name) {
+        return v;
+    }
     let m = match lang.as_str() {
         "fr" => fr::T.deref(),
         "zh-cn" => cn::T.deref(),
