@@ -4,23 +4,55 @@ on:
   workflow_dispatch:
     inputs:
       windows:
-        description: "Windows 64 bit (x64 + ARM)"
+        description: "Windows 64 bit - exe singolo (x64 + ARM)"
         type: boolean
         default: true
+      windows-msi:
+        description: "Windows - anche installer MSI"
+        type: boolean
+        default: false
       windows-32bit:
         description: "Windows 32 bit (vecchia interfaccia Sciter)"
         type: boolean
         default: false
       macos:
-        description: "macOS"
+        description: "macOS - dmg (Intel + Apple Silicon)"
         type: boolean
         default: true
       linux:
-        description: "Linux"
+        description: "Linux - deb, rpm, pkg (x64 + ARM)"
         type: boolean
         default: true
+      linux-appimage:
+        description: "Linux - AppImage"
+        type: boolean
+        default: false
+      linux-flatpak:
+        description: "Linux - Flatpak"
+        type: boolean
+        default: false
+      linux-drm:
+        description: "Linux - deb per Wayland senza sessione (unattended)"
+        type: boolean
+        default: false
+      linux-sciter:
+        description: "Linux - deb vecchia interfaccia Sciter (anche ARMv7)"
+        type: boolean
+        default: false
       android:
-        description: "Android"
+        description: "Android - APK per architettura"
+        type: boolean
+        default: false
+      android-universal:
+        description: "Android - APK universale"
+        type: boolean
+        default: false
+      sign-windows:
+        description: "Firma Windows (richiede i Secrets AZURE_*)"
+        type: boolean
+        default: false
+      sign-android:
+        description: "Firma Android (richiede i Secrets ANDROID_*)"
         type: boolean
         default: false
 
@@ -39,18 +71,38 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --cleanup-tag -y || true
 
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.t.outputs.targets }}
+    steps:
+      - id: t
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          i = json.loads(os.environ["INPUTS"])
+          names = ["windows", "windows-32bit", "macos", "linux", "linux-appimage",
+                   "linux-flatpak", "linux-drm", "linux-sciter", "android", "android-universal"]
+          t = {n for n in names if i.get(n) in (True, "true")}
+          if "linux-appimage" in t: t.add("linux")
+          if "linux-flatpak" in t: t |= {"linux", "linux-sciter"}
+          if "android-universal" in t: t.add("android")
+          print("targets=" + (",".join(sorted(t)) or "none"))
+          PY
+
   run-digidesk-build:
-    needs: clean-release
+    needs: [clean-release, plan]
     uses: ./.github/workflows/flutter-build.yml
     secrets: inherit
     with:
       upload-artifact: true
       upload-tag: "digidesk"
-      build-windows: ${{ inputs.windows }}
-      build-windows-32bit: ${{ inputs.windows-32bit }}
-      build-macos: ${{ inputs.macos }}
-      build-linux: ${{ inputs.linux }}
-      build-android: ${{ inputs.android }}
+      targets: ${{ needs.plan.outputs.targets }}
+      build-msi: ${{ inputs.windows-msi }}
+      sign-windows: ${{ inputs.sign-windows }}
+      sign-android: ${{ inputs.sign-android }}
 
   rename-assets:
     needs: run-digidesk-build
