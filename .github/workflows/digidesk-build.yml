@@ -20,7 +20,7 @@ on:
         type: boolean
         default: true
       sign-windows:
-        description: "Firma Windows - prima crea in Settings > Secrets > Actions: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE (account Azure Artifact Signing)"
+        description: "Firma Windows - prima configura i Secrets: istruzioni nel file SIGNING.md"
         type: boolean
         default: false
 
