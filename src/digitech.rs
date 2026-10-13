@@ -67,7 +67,10 @@ pub fn apply() {
 pub fn translate(lang: &str, name: &str) -> Option<String> {
     let it = lang == "it";
     let s = match name {
-        "Your Desktop" => DISPLAY_NAME,
+        "Your Desktop" if it => "Assistenza Remota",
+        "Your Desktop" => "Remote Support",
+        "Source code" if it => "Codice sorgente",
+        "Source code" => "Source code",
         "desk_tip" if it => {
             "Comunica questo ID e la password all'operatore Digitech per ricevere assistenza."
         }
